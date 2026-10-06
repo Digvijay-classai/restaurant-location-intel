@@ -1,0 +1,17 @@
+# Pinned theme: the app's custom CSS and map palette (src/viz/theme.py)
+# are designed for this dark base. Keep the two in sync.
+[theme]
+base = "dark"
+primaryColor = "#5ec962"
+backgroundColor = "#0e1117"
+secondaryBackgroundColor = "#161b22"
+textColor = "#e6edf3"
+font = "sans serif"
+
+[browser]
+# No usage statistics sent to Streamlit from this app.
+gatherUsageStats = false
+
+[client]
+# Viewers see a clean app (no developer menu).
+toolbarMode = "viewer"
