@@ -47,14 +47,14 @@ hex the tool computes:
 
 - **Unit economics:** demand from residents and visitors, reduced by each
   same-cuisine competitor nearby and capped at seat capacity; then
-  revenue, rent, labour, food, contribution, break-even covers, capex and
+  revenue, rent, labour, food, store EBITDA, break-even covers, capex and
   payback. Every zone also gets a **downside case** (rent +20%, ticket −10%,
   demand −30%) and an **upside case**.
 - **Eight component scores:** competition gap, foot traffic, income match,
   tourism, restaurant ecosystem, spend capacity, rent affordability and
   safety. These are combined into a 0-100 composite using weights you can
   change.
-- **One ranking**, economics first: zones that pay back within 10 years
+- **One ranking**, economics first: zones that pay back within 36 months at a rent within your budget
   come first, sorted by payback. The same rank numbers appear on the map
   pins, in the table and in the shortlist briefs.
 

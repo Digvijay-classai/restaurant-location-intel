@@ -14,6 +14,7 @@ CRIME_VINTAGE = ("2025 municipal rate (Ministerio del Interior, Balance de Crimi
                  "neighbourhood variation is an author estimate")
 TOURISM_VINTAGE = "2024 average (INE Encuesta de Ocupacion Hotelera)"
 INCOME_VINTAGE = "2022 (INE Atlas de Distribucion de Renta de los Hogares)"
+TRACT_VINTAGE = "2023 (INE ADRH census tracts)"
 DENSITY_VINTAGE = "2024 municipal average (INE Padron / municipal area)"
 
 

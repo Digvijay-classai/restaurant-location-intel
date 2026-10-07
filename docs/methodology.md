@@ -96,10 +96,11 @@ revenue     = covers × (lunch share × lunch ticket + dinner share × dinner ti
 
 costs       = rent (€/sqm × size) + core team €5,550 + €3.40 labour per cover
               + fixed OpEx €12/sqm + food 30% of revenue
-contribution = revenue − costs          (before tax and debt service)
+store EBITDA = revenue − costs         (four-wall EBITDA: before depreciation, tax and debt;
+                                        stored as `monthly_contribution_eur`)
 break-even  = fixed costs / (ticket × 70% − €3.40)
 capex       = size × (€1,067/sqm + €8/sqm per €1 of rent/sqm)
-payback     = capex / contribution      (shown only if contribution > €2,000 and ≤ 120 months)
+payback     = capex / store EBITDA      (shown only if EBITDA > €2,000 and ≤ 120 months)
 ```
 
 Labour lands at roughly 28-36% of revenue at healthy volumes, in line with
@@ -116,11 +117,18 @@ should be negotiated hard or skipped.
 One `rank` column drives the map pins, the Rankings table and the
 Shortlist:
 
-1. **Viable:** feasible (covers > break-even), in a named neighbourhood,
-   payback within 10 years. Sorted by payback.
-2. **Feasible, slow payback:** sorted by contribution.
-3. **Below break-even:** sorted by composite.
-4. **Outskirts** (outside the named neighbourhood set): sorted by composite.
+1. **Viable:** feasible (covers > break-even), in a named neighbourhood, rent
+   within your budget tier, payback within **36 months** (24-36 months is a
+   common casual-dining rule of thumb, not a sourced benchmark). Sorted by payback.
+2. **Slow payback:** as above but payback over 36 months. Sorted by store EBITDA.
+3. **Rent above your budget:** feasible, but the zone's estimated rent is above
+   the budget tier's €/m² ceiling. Sorted by store EBITDA.
+4. **Below break-even:** sorted by composite.
+5. **Outskirts** (outside the named neighbourhood set): sorted by composite.
+
+Payback covers the fit-out only. It excludes key money (*traspaso*), deposits
+and bank guarantees (*fianza*), rent-free periods (*carencia*), pre-opening
+costs and working capital, which on prime streets can rival the fit-out.
 
 ## Verdicts and data provenance
 

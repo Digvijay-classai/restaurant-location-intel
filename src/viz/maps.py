@@ -16,6 +16,7 @@ import h3
 import pandas as pd
 
 from ..formatting import eur, months, num, pct
+from ..scoring.financial_model import SHORTLIST_TIERS, TIER_OUTSKIRTS
 from . import theme
 
 MAP_ATTRIBUTION = (
@@ -26,9 +27,9 @@ MAP_ATTRIBUTION = (
 
 def _style(row: pd.Series) -> dict:
     tier = int(row.get("rank_tier", 0))
-    if tier == 3:
+    if tier == TIER_OUTSKIRTS:
         return {"fill_color": theme.GREY_FILL, "fill_opacity": 0.25, "dash_array": "4 4"}
-    if tier == 2:
+    if tier not in SHORTLIST_TIERS:  # over budget or below break-even
         return {"fill_color": theme.score_color(row["composite"]), "fill_opacity": 0.25,
                 "dash_array": "4 4"}
     return {"fill_color": theme.score_color(row["composite"]), "fill_opacity": 0.75,
@@ -78,7 +79,7 @@ def render_score_map(
 
     m.get_root().html.add_child(folium.Element(_legend_html()))
 
-    shortlist = df[df["rank_tier"] <= 1].nsmallest(label_top, "rank")
+    shortlist = df[df["rank_tier"].isin(SHORTLIST_TIERS)].nsmallest(label_top, "rank")
     for _, row in shortlist.iterrows():
         rank = int(row["rank"])
         folium.Marker(
@@ -114,7 +115,7 @@ def _legend_html() -> str:
       <div style='display:flex;justify-content:space-between;width:110px;margin-top:2px;
                   font-size:11px;color:{theme.TEXT_MUTED}'>{ticks}</div>
       <div style='margin-top:6px;font-size:11px;color:{theme.TEXT_MUTED}'>
-        Faint, dashed = below break-even<br>Grey = outside named neighbourhoods</div>
+        Faint, dashed = below break-even or over budget<br>Grey = outside named neighbourhoods</div>
     </div>"""
 
 
@@ -132,7 +133,7 @@ def _popup_html(row: pd.Series, cuisine: str) -> str:
             f"<b>Unit economics ({int(row.get('size_sqm', 150))} sqm)</b><br>"
             f"Revenue: {eur(rev)}/month<br>"
             f"Rent: {eur(row['monthly_rent_eur'])}/month<br>"
-            f"Contribution: {eur(cont)}/month ({pct(margin, 1)})<br>"
+            f"Store EBITDA: {eur(cont)}/month ({pct(margin, 1)})<br>"
             f"Payback: {months(row['payback_months'])}<br>"
             f"Break-even: {num(row['breakeven_covers_per_month'])} covers/month"
         )

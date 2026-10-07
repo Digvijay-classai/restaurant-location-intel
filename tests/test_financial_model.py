@@ -165,3 +165,40 @@ def test_brief_does_not_repeat_risk_flags():
     row = _brief_row(same_cuisine=6)
     assert row["risk_flags"]
     assert "Risk flags" not in fm.deal_brief(row, "italian", "madrid")
+
+
+# ---- payback hurdle and rent budget ------------------------------------------
+
+def test_viable_requires_payback_within_hurdle():
+    ranked = fm.rank_zones(pd.DataFrame({
+        "neighbourhood": ["A", "B"], "concept_feasible": [True, True],
+        "payback_months": [fm.PAYBACK_HURDLE_MONTHS - 1, fm.PAYBACK_HURDLE_MONTHS + 1],
+        "monthly_contribution_eur": [5_000, 9_000], "composite": [50.0, 50.0],
+    }))
+    assert ranked["rank_tier"].tolist() == [fm.TIER_VIABLE, fm.TIER_SLOW]
+
+
+def test_rent_above_budget_cannot_be_viable():
+    """Regression: the budget tier used to change the score only, never the ranking."""
+    low = _econ(_hexes(1, population_density=14_000.0), city="madrid")
+    low = fm.compute(low.drop(columns=["risk_flags"]), "italian", city="madrid", budget="low")
+    high = fm.compute(low.drop(columns=["risk_flags"]), "italian", city="madrid", budget="high")
+    rent = low.loc[0, "est_rent_eur_sqm"]
+    assert rent > 30  # above the low tier's €30/m² cap, below the high tier's €120
+    assert low.loc[0, "over_budget"] and not high.loc[0, "over_budget"]
+    assert fm.rank_zones(low).loc[0, "rank_tier"] == fm.TIER_OVER_BUDGET
+    assert fm.rank_zones(high).loc[0, "rank_tier"] in fm.SHORTLIST_TIERS
+    assert "rent above your budget" in low.loc[0, "risk_flags"]
+    assert "above your budget" in fm.deal_brief(low.iloc[0], "italian", "madrid")
+
+
+def test_budget_changes_live_rankings():
+    from src.pipeline import run_pipeline
+    low = run_pipeline("barcelona", "italian", "low")
+    high = run_pipeline("barcelona", "italian", "high")
+    assert (low["rank_tier"] == fm.TIER_VIABLE).sum() < (high["rank_tier"] == fm.TIER_VIABLE).sum()
+
+
+def test_brief_uses_store_ebitda_language():
+    text = fm.deal_brief(_brief_row(), "italian", "madrid")
+    assert "store EBITDA" in text and "contribution" not in text

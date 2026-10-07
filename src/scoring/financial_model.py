@@ -34,6 +34,7 @@ from ..cuisines import day_share, tickets
 from ..formatting import NO_PAYBACK, eur, eur_k, months, num, pct
 from ..data_sources.neighborhoods import OUTSKIRTS
 from .engine import ring_sum
+from .weights import BUDGET_MAX_RENT
 
 # --------- Operator-defined constants ----------------------------------------
 REFERENCE_SIZE_SQM = 150.0
@@ -73,9 +74,14 @@ COMPETITION_ELASTICITY = 0.15
 BASE_CAPEX_EUR_PER_SQM = 160_000 / REFERENCE_SIZE_SQM
 FIT_OUT_EUR_PER_SQM_PER_RENT_EUR = 8.0
 
-# Payback is only reported when contribution is credible.
+# Payback is only reported when store EBITDA ("contribution" in column names)
+# is credible, and up to 10 years.
 MIN_CREDIBLE_CONTRIBUTION_EUR = 2_000
 MAX_PAYBACK_MONTHS = 120
+# A zone is "viable" only if it pays back within this many months. 24-36
+# months is a common operator rule of thumb for casual dining (not a sourced
+# benchmark); we use the upper end.
+PAYBACK_HURDLE_MONTHS = 36
 
 # Sensitivity scenarios: (rent multiplier, ticket multiplier, capture multiplier).
 SCENARIOS: dict[str, tuple[float, float, float]] = {
@@ -144,11 +150,13 @@ def _economics(out: pd.DataFrame, cuisine: str, size_sqm: float,
 
 
 def compute(df: pd.DataFrame, cuisine: str, city: str = "",
-            size_sqm: float = REFERENCE_SIZE_SQM) -> pd.DataFrame:
+            size_sqm: float = REFERENCE_SIZE_SQM, budget: str | None = None) -> pd.DataFrame:
     """Return a copy with monthly unit economics, capex, payback, sensitivity and risk flags.
 
     Expects the output of `engine.score_hexes` (needs same_cuisine_ring,
-    est_rent_eur_sqm, population_density, hotel, tourism).
+    est_rent_eur_sqm, population_density, hotel, tourism). `budget` (low /
+    medium / high) is the most rent per m² the operator would pay: zones above
+    it are marked `over_budget` and cannot rank as viable.
     """
     size_sqm = float(min(max(size_sqm, MIN_SIZE_SQM), MAX_SIZE_SQM))
     out = df.copy()
@@ -185,6 +193,9 @@ def compute(df: pd.DataFrame, cuisine: str, city: str = "",
     out["payback_low_months"]         = low["payback"].round(1)
     out["payback_high_months"]        = high["payback"].round(1)
     out["concept_feasible"]           = base["covers"] > base["breakeven"]
+    cap = BUDGET_MAX_RENT.get(budget) if budget else None
+    out["rent_budget_eur_sqm"]        = cap
+    out["over_budget"]                = (out["est_rent_eur_sqm"] > cap) if cap else False
 
     out["risk_flags"] = [_risk_flags(r, city) for _, r in out.iterrows()]
     return out
@@ -201,6 +212,8 @@ def _risk_flags(row: pd.Series, city: str) -> list[str]:
         flags.append("elevated crime")
     if row.get("est_rent_eur_sqm", 0) > 90:
         flags.append("prime-rent corridor")
+    if row.get("over_budget", False):
+        flags.append("rent above your budget")
     if not row.get("concept_feasible", True):
         flags.append("below break-even")
     if row.get("capacity_capped", False):
@@ -212,22 +225,26 @@ def _risk_flags(row: pd.Series, city: str) -> list[str]:
 
 # --------- Ranking ------------------------------------------------------------
 
+TIER_VIABLE, TIER_SLOW, TIER_OVER_BUDGET, TIER_BELOW_BREAKEVEN, TIER_OUTSKIRTS = 0, 1, 2, 3, 4
 TIER_LABELS = {
-    0: "viable",
-    1: "feasible, slow payback",
-    2: "below break-even",
-    3: "outside named neighbourhoods",
+    TIER_VIABLE: "viable",
+    TIER_SLOW: "feasible, slow payback",
+    TIER_OVER_BUDGET: "rent above your budget",
+    TIER_BELOW_BREAKEVEN: "below break-even",
+    TIER_OUTSKIRTS: "outside named neighbourhoods",
 }
+SHORTLIST_TIERS = (TIER_VIABLE, TIER_SLOW)
 
 
 def rank_zones(df: pd.DataFrame) -> pd.DataFrame:
     """Add `rank_tier` and `rank` (1 = best). One ranking for map, table and briefs.
 
     Economics are authoritative; the composite only breaks ties:
-      tier 0  feasible, named neighbourhood, payback within 10 yrs -> payback asc
-      tier 1  feasible, named, no payback in 10 yrs                -> contribution desc
-      tier 2  below break-even, named                              -> composite desc
-      tier 3  Outskirts                                            -> composite desc
+      0 viable           feasible, within budget, payback <= 36 months  -> payback asc
+      1 slow payback     feasible, within budget, payback > 36 months    -> store EBITDA desc
+      2 over budget      feasible, but rent above the budget tier        -> store EBITDA desc
+      3 below break-even                                                 -> composite desc
+      4 Outskirts        outside the named neighbourhoods                -> composite desc
     """
     out = df.copy()
     if out.empty:
@@ -236,18 +253,23 @@ def rank_zones(df: pd.DataFrame) -> pd.DataFrame:
         return out
     named = out.get("neighbourhood", pd.Series("", index=out.index)) != OUTSKIRTS
     feasible = out["concept_feasible"].astype(bool)
-    finite = np.isfinite(out["payback_months"].astype(float))
+    over = (out["over_budget"] if "over_budget" in out.columns
+            else pd.Series(False, index=out.index)).astype(bool)
+    pb_raw = out["payback_months"].astype(float)
+    within_hurdle = np.isfinite(pb_raw) & (pb_raw <= PAYBACK_HURDLE_MONTHS)
     tier = np.select(
-        [named & feasible & finite, named & feasible, named],
-        [0, 1, 2],
-        default=3,
+        [named & feasible & ~over & within_hurdle, named & feasible & ~over,
+         named & feasible & over, named],
+        [TIER_VIABLE, TIER_SLOW, TIER_OVER_BUDGET, TIER_BELOW_BREAKEVEN],
+        default=TIER_OUTSKIRTS,
     )
     out["rank_tier"] = tier.astype(int)
-    pb = out["payback_months"].astype(float).where(finite, 1e9)
+    pb = pb_raw.where(np.isfinite(pb_raw), 1e9)
     out = out.assign(_pb=pb, _neg_cont=-out["monthly_contribution_eur"],
                      _neg_comp=-out["composite"])
-    out["_k2"] = np.where(out["rank_tier"] == 0, out["_pb"],
-                          np.where(out["rank_tier"] == 1, out["_neg_cont"], out["_neg_comp"]))
+    out["_k2"] = np.where(out["rank_tier"] == TIER_VIABLE, out["_pb"],
+                          np.where(out["rank_tier"].isin([TIER_SLOW, TIER_OVER_BUDGET]),
+                                   out["_neg_cont"], out["_neg_comp"]))
     out = out.sort_values(["rank_tier", "_k2", "_neg_comp"], kind="mergesort")
     out["rank"] = np.arange(1, len(out) + 1)
     return out.drop(columns=["_pb", "_neg_cont", "_neg_comp", "_k2"]).sort_index()
@@ -291,7 +313,7 @@ def deal_brief(row: pd.Series, cuisine: str, city: str, verdicts_allowed: bool =
         f"**{hood}** ({city.title()}) scores {_f(row.get('composite')):.1f}/100 for {cuisine}. "
         f"A {num(size)} sqm concept projects {eur(rev)}/month revenue "
         f"({num(covers)} covers at a {eur(_f(row.get('blended_ticket_eur')), 1)} blended ticket), "
-        f"{eur(rent)}/month rent and {eur(cont)}/month contribution ({pct(margin, 1)} margin). "
+        f"{eur(rent)}/month rent and {eur(cont)}/month store EBITDA ({pct(margin, 1)} margin). "
         f"Capex {eur_k(capex)}, payback {months(pb)}, break-even {num(be)} covers/month. "
         f"Downside case (rent +20%, ticket -10%, demand -30%): {eur(c_low)}/month, "
         f"payback {months(pb_low)}. Upside case: {eur(c_high)}/month, payback {months(pb_high)}."
@@ -299,15 +321,22 @@ def deal_brief(row: pd.Series, cuisine: str, city: str, verdicts_allowed: bool =
     if not verdicts_allowed:
         return text + " _No verdict: core data for this city is synthetic or estimated._"
 
+    hurdle = PAYBACK_HURDLE_MONTHS
+    within = math.isfinite(pb) and pb <= hurdle
     if not feasible:
         verdict = ("below break-even — a dine-in concept here would need a delivery leg "
                    "or private-events overlay to work")
-    elif margin > 0.15 and math.isfinite(pb) and pb < 36 and math.isfinite(pb_low):
-        verdict = f"strong candidate: payback {months(pb)} and still positive in the downside case"
-    elif margin > 0.15 and math.isfinite(pb) and pb < 36:
-        verdict = f"promising ({months(pb)} payback) but fails the downside case; negotiate rent"
-    elif margin > 0.08 and math.isfinite(pb):
-        verdict = f"worth a site visit: payback {months(pb)}"
+    elif bool(row.get("over_budget", False)):
+        verdict = (f"rent ({eur(_f(row.get('est_rent_eur_sqm')))}/m²) is above your budget of "
+                   f"{eur(_f(row.get('rent_budget_eur_sqm')))}/m²; only worth it with a lower rent")
+    elif within and math.isfinite(pb_low) and pb_low <= hurdle:
+        verdict = (f"strong candidate: payback {months(pb)}, and still within {hurdle} months "
+                   "in the downside case")
+    elif within:
+        verdict = (f"promising ({months(pb)} payback) but the downside case misses the "
+                   f"{hurdle}-month hurdle; negotiate rent")
+    elif math.isfinite(pb):
+        verdict = f"slow: payback {months(pb)}, above the {hurdle}-month hurdle"
     elif margin > 0.08:
         verdict = f"healthy margin but {NO_PAYBACK.lower()}"
     else:

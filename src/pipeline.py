@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from .cities import CRIME_VINTAGE, DENSITY_VINTAGE, INCOME_VINTAGE, TOURISM_VINTAGE, get_city
+from .cities import CRIME_VINTAGE, DENSITY_VINTAGE, INCOME_VINTAGE, TRACT_VINTAGE, get_city
 from .cuisines import CUISINES
 from .data_sources import crime, ine_demographics, neighborhoods, overture_maps, rent_listings, tourism
 from .data_sources.overture_maps import POI_CATEGORIES
@@ -233,11 +233,11 @@ def build_base_frame(
         },
         "vintages": {
             "pois": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "income": INCOME_VINTAGE if "ine_csv" in set(df["demographics_source"]) else "city median, " + INCOME_VINTAGE,
-            "density": (INCOME_VINTAGE if "ine_csv" in set(df["demographics_source"])
+            "income": (TRACT_VINTAGE if "ine_csv" in set(df["demographics_source"])
+                       else "city median, " + INCOME_VINTAGE),
+            "density": (TRACT_VINTAGE if "ine_csv" in set(df["demographics_source"])
                         else DENSITY_VINTAGE),
             "crime": CRIME_VINTAGE,
-            "tourism": TOURISM_VINTAGE,
         },
         "n_pois": len(pois),
     }
@@ -308,7 +308,7 @@ def score_frame(
         weights=weights,
     )
     scored = score_hexes(enriched, inputs)
-    scored = financial_model.compute(scored, cuisine, city=city, size_sqm=size_sqm)
+    scored = financial_model.compute(scored, cuisine, city=city, size_sqm=size_sqm, budget=budget)
     return financial_model.rank_zones(scored)
 
 

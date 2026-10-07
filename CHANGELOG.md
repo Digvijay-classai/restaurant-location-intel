@@ -15,6 +15,17 @@
   3.14 (what Streamlit Community Cloud installs), plus a weekly run.
 
 ### Changed
+- **Budget now constrains the ranking.** Zones whose estimated rent is above
+  the budget tier's €/m² ceiling can no longer rank as viable (new tier "rent
+  above your budget", risk flag and verdict). Before, budget only nudged the
+  composite score: a silent failure found while reviewing the article.
+- **Viable = payback within 36 months** (was 10 years), a common casual-dining
+  rule of thumb. The 10-year window still bounds what payback is reported.
+- "Contribution" is labelled **store EBITDA** (four-wall EBITDA) in the UI and
+  briefs; briefs and the methodology state that payback excludes key money,
+  deposits and pre-opening costs.
+- Snapshot metadata records the 2023 INE tract vintage and the 2025 crime
+  source; unused tourism figures are no longer listed as a source.
 - The provenance bar shows the current crime source; the unused tourism
   figures are no longer displayed.
 - New screenshots (Home, Analyse, map crop).

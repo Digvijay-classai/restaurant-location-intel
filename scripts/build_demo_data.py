@@ -32,7 +32,7 @@ import h3
 import pandas as pd
 from h3 import LatLngPoly
 
-from src.cities import CITIES, CITY_KEYS, CRIME_VINTAGE, TOURISM_VINTAGE
+from src.cities import CITIES, CITY_KEYS, CRIME_VINTAGE
 from src.cuisines import CUISINES
 from src.geo.distance import haversine_km
 from src.pipeline import (LIVE_OSM, SNAPSHOT_SCHEMA_VERSION, SYNTHETIC,
@@ -115,7 +115,7 @@ def synthetic_meta(city: str) -> dict:
         "sources": {"pois": SYNTHETIC, "demographics": SYNTHETIC,
                     "competitors": SYNTHETIC, "boundary": "bbox"},
         "vintages": {"pois": "synthetic", "income": "synthetic",
-                     "crime": CRIME_VINTAGE, "tourism": TOURISM_VINTAGE},
+                     "crime": CRIME_VINTAGE},
         "note": ("SYNTHETIC demo snapshot: randomly generated, calibrated against public "
                  "ranges. Not real market data. Replace with scripts/pull_live_data.py."),
     }

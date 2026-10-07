@@ -26,7 +26,8 @@ from src.formatting import eur, eur_k, months, num, pct
 from src.geo.boundaries import city_center
 from src.pipeline import is_synthetic, run_pipeline_with_meta, verdicts_allowed
 from src.scoring.financial_model import (MAX_SIZE_SQM, MIN_SIZE_SQM, REFERENCE_SIZE_SQM,
-                                         TIER_LABELS, deal_brief, rank_zones)
+                                         PAYBACK_HURDLE_MONTHS, SHORTLIST_TIERS, TIER_LABELS,
+                                         TIER_VIABLE, deal_brief, rank_zones)
 from src.scoring.weights import BUDGET_MAX_RENT, COMPONENTS, weights_for
 from src.viz.maps import render_score_map
 from src.viz.ui import footer
@@ -174,14 +175,14 @@ st.markdown(
     f"{budget.title()} budget · {num(size_sqm)} sqm</h2>",
     unsafe_allow_html=True,
 )
-shortlist = df[df["rank_tier"] <= 1].sort_values("rank")
-n_viable = int((df["rank_tier"] == 0).sum())
+shortlist = df[df["rank_tier"].isin(SHORTLIST_TIERS)].sort_values("rank")
+n_viable = int((df["rank_tier"] == TIER_VIABLE).sum())
 if shortlist.empty:
     nxt = {"low": "Medium", "medium": "High"}.get(budget)
     tip = (f"Try the {nxt} budget tier, a smaller premises, or "
            if nxt else "Try a smaller premises or ")
     st.markdown(
-        f"<div class='anchor'><p class='label'>No zone clears break-even</p>"
+        f"<div class='anchor'><p class='label'>No zone clears break-even within your rent budget</p>"
         f"<p class='facts'>None of the {len(df)} zones shown covers its fixed costs for a "
         f"{num(size_sqm)} sqm {html.escape(cuisine)} concept at this budget. {tip}"
         "lowering the confidence filter.</p></div>",
@@ -196,9 +197,10 @@ else:
         f"<p class='hood'>{html.escape(best['neighbourhood'])}</p>"
         f"<p class='facts'>Payback {months(best['payback_months'])} "
         f"(downside {months(best['payback_low_months'])}, upside {months(best['payback_high_months'])})"
-        f" · contribution {eur(best['monthly_contribution_eur'])}/month ({pct(margin, 1)} margin)"
+        f" · store EBITDA {eur(best['monthly_contribution_eur'])}/month ({pct(margin, 1)} margin)"
         f" · confidence {pct(best['confidence'])} · score {best['composite']:.1f}</p>"
-        f"<p class='muted'>{n_viable} of {len(df)} zones pay back within 10 years"
+        f"<p class='muted'>{n_viable} of {len(df)} zones pay back within {PAYBACK_HURDLE_MONTHS} months "
+        f"at a rent within your budget (≤ {eur(BUDGET_MAX_RENT[budget])}/m²)"
         f"{f' · {n_hidden} hidden by the confidence filter' if n_hidden else ''}</p>"
         f"</div>",
         unsafe_allow_html=True,
@@ -211,13 +213,15 @@ tab_short, tab_map, tab_rank, tab_data = st.tabs(["Shortlist", "Map", "Rankings"
 
 with tab_short:
     st.caption(
-        f"Top 5 zones that clear break-even, by rank. {num(size_sqm)} sqm casual dining, "
-        f"{int(round(size_sqm / 2.5))} seats, lunch (menú del día) + dinner split per cuisine. "
-        "Costs: rent, a fixed core team plus labour per cover, fixed OpEx, 30% food cost. "
-        "Downside/upside cases flex rent ±20%, ticket ±10% and demand ±30%."
+        f"Top 5 zones that clear break-even at a rent within your budget, by rank. "
+        f"{num(size_sqm)} sqm casual dining, {int(round(size_sqm / 2.5))} seats, lunch (menú del día) "
+        "+ dinner split per cuisine. Costs: rent, a fixed core team plus labour per cover, fixed OpEx, "
+        "30% food cost. Downside/upside cases flex rent ±20%, ticket ±10% and demand ±30%. "
+        "Payback covers fit-out only: it excludes key money (traspaso), deposits and guarantees "
+        "(fianza), pre-opening costs and working capital."
     )
     if shortlist.empty:
-        st.info("No zone clears break-even with the current inputs. See the suggestion above.")
+        st.info("No zone clears break-even at a rent within your budget. See the suggestion above.")
     for _, row in shortlist.head(5).iterrows():
         with st.container(border=True):
             left, right = st.columns([2, 1])
@@ -232,7 +236,9 @@ with tab_short:
             with right:
                 rev = row["monthly_revenue_eur"]
                 margin = row["monthly_contribution_eur"] / rev if rev else 0
-                st.metric("Contribution / month", eur(row["monthly_contribution_eur"]))
+                st.metric("Store EBITDA / month", eur(row["monthly_contribution_eur"]),
+                          help="Four-wall EBITDA: revenue minus food, labour, rent and operating "
+                               "costs, before depreciation, tax and debt.")
                 st.caption(f"{pct(margin, 1)} margin · downside {eur(row['contribution_low_eur'])}"
                            f" · upside {eur(row['contribution_high_eur'])}")
                 st.metric("Payback", months(row["payback_months"]))
@@ -275,11 +281,12 @@ with tab_rank:
         column_config={
             "rank": st.column_config.NumberColumn("Rank", help="Economics-first rank (same as map pins)."),
             "neighbourhood": "Neighbourhood",
-            "status": st.column_config.TextColumn("Status", help="viable = pays back within 10 years."),
+            "status": st.column_config.TextColumn(
+                "Status", help=f"viable = pays back within {PAYBACK_HURDLE_MONTHS} months, rent within budget."),
             "payback": "Payback",
             "monthly_contribution_eur": st.column_config.NumberColumn(
-                "Contribution (€/month)", format="localized",
-                help="Revenue minus rent, labour, food and fixed OpEx (before tax and debt)."),
+                "Store EBITDA (€/month)", format="localized",
+                help="Four-wall EBITDA: revenue minus food, labour, rent and fixed OpEx (before depreciation, tax and debt)."),
             "margin": st.column_config.NumberColumn("Margin", format="percent"),
             "composite": st.column_config.ProgressColumn(
                 "Score", min_value=0, max_value=100, format="%.1f",

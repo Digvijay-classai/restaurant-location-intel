@@ -76,7 +76,7 @@ if map_shot.exists():
 
 st.subheader("Try an example")
 st.caption("Opens the tool with these inputs filled in. You can change anything afterwards. "
-           "The last one shows the tool saying no: no zone pays back within 10 years.")
+           "The last one shows the tool saying no: no zone is viable.")
 cols = st.columns(len(SCENARIOS))
 for col, (label, city, cuisine, budget) in zip(cols, SCENARIOS):
     if col.button(label, width="stretch", key=f"scenario_{city}_{cuisine}"):
@@ -87,9 +87,9 @@ for col, (label, city, cuisine, budget) in zip(cols, SCENARIOS):
 st.subheader("How to use it")
 steps = [
     ("Pick your scenario", "In the sidebar on the Analyse page, choose a city, a cuisine, a budget "
-     "tier (the most rent per m² you would pay) and the premises size."),
+     "tier (the most rent per m² you would pay; zones above it can't rank as viable) and the premises size."),
     ("Read the top zone", "The card under the title shows the best zone: its payback period, the "
-     "downside and upside cases, monthly contribution and how confident the data is."),
+     "downside and upside cases, monthly store EBITDA and how confident the data is."),
     ("Compare the shortlist", "<i>Shortlist</i> gives a short deal brief for the top five zones. "
      "<i>Map</i> shows every zone coloured by score, with the shortlist numbered. <i>Rankings</i> "
      "breaks each zone into its eight component scores."),
@@ -108,12 +108,13 @@ st.markdown(
     """
 <dl class="read">
 <dt>Rank and status</dt>
-<dd>Zones are ranked on economics first. <b>Viable</b> zones pay back their fit-out within 10 years and come first, fastest payback on top.
-Then come <b>feasible, slow payback</b> zones, then <b>below break-even</b> ones. Areas outside the named neighbourhoods come last.
-The same rank number appears on the map pin, in the table and in the brief.</dd>
+<dd>Zones are ranked on economics first. <b>Viable</b> zones pay back their fit-out within 36 months at a rent within your budget, fastest first
+(24-36 months is a common operator rule of thumb). Then come <b>slow payback</b> zones, then zones whose <b>rent is above your budget</b>,
+then <b>below break-even</b>. Areas outside the named neighbourhoods come last. The same rank number appears on the map pin, in the table and in the brief.</dd>
 <dt>Payback, downside and upside</dt>
-<dd>Payback = fit-out cost ÷ monthly contribution. The downside case adds 20% to rent, cuts the ticket by 10% and demand by 30%; the upside case does the reverse.
-A zone that only works in the base case needs a hard rent negotiation.</dd>
+<dd>Payback = fit-out cost ÷ monthly store EBITDA (four-wall EBITDA: revenue minus food, labour, rent and operating costs).
+It leaves out key money (traspaso), deposits and pre-opening costs, which can be large on prime streets.
+The downside case adds 20% to rent, cuts the ticket by 10% and demand by 30%; the upside case does the reverse.</dd>
 <dt>Composite score (0-100)</dt>
 <dd>A weighted mix of eight signals: competition, foot traffic, income match, tourism, dining ecosystem, spend capacity, rent fit and safety.
 It colours the map and breaks ties. It does not override the economics.</dd>
