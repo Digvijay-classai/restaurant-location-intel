@@ -151,3 +151,9 @@ def test_footer_has_attribution_and_disclaimer(app):
     captions = " ".join(c.value for c in app.caption)
     for needle in ("OpenStreetMap", "INE", "Ministerio del Interior", "not financial", "Privacy"):
         assert needle in captions
+
+
+def test_provenance_shows_current_crime_source(app):
+    from src.cities import CRIME_VINTAGE
+    banner = " ".join(x.value for x in [*app.success, *app.info, *app.warning])
+    assert CRIME_VINTAGE in banner and "Tourism" not in banner

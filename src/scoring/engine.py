@@ -45,7 +45,9 @@ FALLBACK_INCOME = 35_000.0
 class ScoreInputs:
     cuisine: str
     budget: str                  # "low" | "medium" | "high"
-    hotel_beds_per_1000: float   # municipality-level (used by the financial model)
+    # Municipality-level context, carried for callers; not used by any score
+    # (per-hex hotels/attractions from OSM drive tourism and visitor demand).
+    hotel_beds_per_1000: float
     overnight_stays_per_capita: float
     weights: Mapping[str, float] | None = None  # None -> cuisine profile
 

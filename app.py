@@ -23,7 +23,7 @@ from streamlit_folium import st_folium
 # Load .env BEFORE importing anything that reads env vars.
 load_dotenv()
 
-from src.cities import CITIES, CITY_KEYS  # noqa: E402
+from src.cities import CITIES, CITY_KEYS, CRIME_VINTAGE  # noqa: E402
 from src.cuisines import CUISINE_KEYS  # noqa: E402
 from src.data_sources.overture_maps import OverpassError  # noqa: E402
 from src.export import NESTED_COLUMNS, to_geojson  # noqa: E402
@@ -179,7 +179,7 @@ prov = (
     f"{' ' + vint['pois'] if vint.get('pois') not in (None, 'synthetic') else ''} · "
     f"Demographics: {SOURCE_LABELS.get(sources.get('demographics'), sources.get('demographics'))} · "
     f"Competitors: {SOURCE_LABELS.get(sources.get('competitors'), sources.get('competitors'))} · "
-    f"Rent: {rent_label} · Crime: {vint.get('crime', '—')} · Tourism: {vint.get('tourism', '—')}"
+    f"Rent: {rent_label} · Crime: {CRIME_VINTAGE}"
 )
 if is_synthetic(meta):
     st.warning(
