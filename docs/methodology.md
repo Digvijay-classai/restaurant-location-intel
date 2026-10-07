@@ -18,10 +18,9 @@ City boundary ──► H3 hex grid (res 8, ~0.74 km²)
                  ┌──────────────┐
    OSM POIs ───► │ restaurants  │
                  │ shops, offices, transit, hotels, bars…
-   INE  ───────► │ income, population density
-   Tourism ────► │ hotel beds (city level)
-   Crime ──────► │ district rate
-   Rent CSV ───► │ €/sqm/month
+   INE  ───────► │ income, population, foreign share (census tracts, 1 km disc)
+   Crime ──────► │ official municipal rate × neighbourhood index (estimate)
+   Rent CSV ───► │ €/sqm/month (author estimates or licensed listings)
                  └──────┬───────┘
                         ├──► 8 component scores ──► composite 0-100 (screen)
                         └──► unit economics ──► payback, downside/upside ──► RANK
@@ -46,7 +45,7 @@ Two views per hex, deliberately independent:
 | Restaurant ecosystem | Bell curve peaking at ~14 restaurants (hex + neighbours) | OSM |
 | Spend capacity | `0.6 × income_norm + 0.4 × everyday activity` (transit, offices, shops) | INE + OSM |
 | Rent affordability | Logistic of estimated rent against the budget tier ceiling | Rent CSV + model |
-| Safety | `exp(-crime / 120)` | Ministerio del Interior + city open data |
+| Safety | `exp(-crime / 120)` | Official municipal rate (Ministerio del Interior, 2025) × estimated neighbourhood index |
 
 Plus a per-hex **confidence** in [0, 1]: 60% POI density (log scale,
 saturating at 100 POIs) + 40% demographics (measured INE tracts = 1.0,
@@ -159,10 +158,9 @@ paybacks.
 |--------|------|--------|------|
 | OpenStreetMap via Overpass | Restaurants, shops, transit, hotels, offices, bars | Open, no key | Free |
 | INE Atlas de Renta de los Hogares | Household income per census tract | Open CSV (`data/ine/`) | Free |
-| INE Encuesta de Ocupación Hotelera | Hotel beds per municipality | Static table, 2024 | Free |
-| Ministerio del Interior + city portals | Crime per 1,000 residents | Static table, 2024-Q4 | Free |
+| Ministerio del Interior, Balance de Criminalidad Q4 2025 | Municipal crime count (rate = count / INE population) | Static, 2025 | Free |
 | Google Places API (optional) | Competitor counts (refresh only) | API key | Free tier |
-| Cushman & Wakefield / CBRE Spain 2024 | Seeded rent per neighbourhood | Public reports | Free |
+| Author estimates (calibrated to Cushman & Wakefield / CBRE Spain 2024 ranges) | Rent per neighbourhood | `data/rent/` | — |
 | Uber H3 | Hexagonal spatial indexing | Library | Free |
 
 ## Limitations

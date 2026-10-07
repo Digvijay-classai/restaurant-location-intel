@@ -21,7 +21,22 @@
 > Independent portfolio and research project. Figures are model estimates,
 > not financial or investment advice. See [DISCLAIMER.md](DISCLAIMER.md).
 
-![Shortlist with provenance bar and deal briefs](docs/screenshots/demo.png)
+![Home page: what the tool is, live coverage, how to use it](docs/screenshots/home.png)
+
+## App tour
+
+The live app has four pages, linked from the top navigation. Every page except Home has a **Home** link at the top of the sidebar.
+
+| Page | What you do there |
+|------|-------------------|
+| **Home** | Read what the tool answers and how to use it. Open one of three example scenarios in one click (one of them shows the tool saying "no"). |
+| **Analyse** | Pick city, cuisine, budget and premises size. See the #1 zone with payback and downside/upside cases, the **Shortlist** briefs, the **Map**, the full **Rankings**, and **Data** exports (CSV and GeoJSON). |
+| **Methodology** | The full model: components, demand and cost formulas, ranking, verdict rules, limitations. |
+| **Data & legal** | Every data source with its licence and attribution, the disclaimer and privacy note. |
+
+Your inputs persist when you move between pages.
+
+![Analyse page: provenance bar, top zone and deal briefs](docs/screenshots/demo.png)
 
 ![Map: shortlist pins over scored H3 zones](docs/screenshots/map.png)
 
@@ -73,8 +88,9 @@ pip install -r requirements.lock     # exact tested versions
 streamlit run app.py
 ```
 
-Open http://localhost:8501. The snapshots are committed, so the app loads
-in about a second with no network and no API keys.
+Open http://localhost:8501: the app opens on the Home page. The snapshots
+are committed, so it loads in about a second with no network and no API
+keys.
 
 ## Refreshing data
 
@@ -174,14 +190,15 @@ for the golden-ranking test that makes model changes reviewable.
 ## Repository layout
 
 ```
-app.py                       Streamlit UI
+app.py                       Streamlit entry point: page config + navigation
+views/                       pages: home, analyze, methodology, data_legal
 src/
   cities.py, cuisines.py     registries
   pipeline.py                snapshots, builder, scoring orchestration, provenance
   scoring/                   engine (components), financial_model (economics, rank), weights
   data_sources/              OSM/Overpass, INE (API + tracts), rent listings, Google Places, crime, tourism, neighbourhoods
   geo/                       boundaries, H3 grid, distance
-  viz/                       Folium map, colour tokens
+  viz/                       Folium map, colour tokens, shared UI (CSS, footer, docs rendering)
   export.py, formatting.py   GeoJSON export, es-ES formatting
 scripts/                     fetch_ine_tracts, pull_live_data, import_rent_listings, build_demo_data, validate_snapshots
 data/

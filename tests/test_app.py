@@ -12,12 +12,22 @@ from streamlit.testing.v1 import AppTest
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 
 
-@pytest.fixture
-def app() -> AppTest:
-    at = AppTest.from_file(APP, default_timeout=90)
-    at.run()
+# AppTest doesn't keep the current st.navigation page across reruns, so the
+# Analyse page is tested by running its script directly; Home and navigation
+# are tested through app.py.
+ANALYSE = str(Path(__file__).resolve().parents[1] / "views" / "analyze.py")
+
+
+def open_analyse() -> AppTest:
+    at = AppTest.from_file(ANALYSE, default_timeout=90).run()
     assert not at.exception, [e.message for e in at.exception]
     return at
+
+
+@pytest.fixture
+def app() -> AppTest:
+    """The Analyse page."""
+    return open_analyse()
 
 
 def _header(at: AppTest) -> str:
@@ -91,9 +101,7 @@ def _synthetic_app(tmp_path, monkeypatch) -> AppTest:
                                 tmp_path / f"{city}_demo.json")
     monkeypatch.setattr(pipeline, "SAMPLE_DIR", tmp_path)
     st.cache_data.clear()  # the cache is process-wide; don't reuse other tests' results
-    at = AppTest.from_file(APP, default_timeout=90)
-    at.run()
-    return at
+    return open_analyse()
 
 
 def test_confidence_filter_empty_state(tmp_path, monkeypatch):
@@ -118,7 +126,7 @@ def test_geojson_export_is_strict_json():
 def test_every_city_and_cuisine_renders():
     from src.cities import CITY_KEYS
     from src.cuisines import CUISINE_KEYS
-    at = AppTest.from_file(APP, default_timeout=90).run()
+    at = open_analyse()
     for city in CITY_KEYS:
         at.sidebar.selectbox[0].set_value(city)
         for cz in CUISINE_KEYS:
@@ -140,7 +148,7 @@ def test_places_snapshot_hides_map_and_credits_google(tmp_path, monkeypatch):
         pipeline.write_snapshot(city, df, meta, tmp_path / f"{city}_demo.json")
     monkeypatch.setattr(pipeline, "SAMPLE_DIR", tmp_path)
     st.cache_data.clear()
-    at = AppTest.from_file(APP, default_timeout=90).run()
+    at = open_analyse()
     st.cache_data.clear()
     assert not at.exception
     assert any("Map hidden" in i.value for i in at.info)
@@ -157,3 +165,43 @@ def test_provenance_shows_current_crime_source(app):
     from src.cities import CRIME_VINTAGE
     banner = " ".join(x.value for x in [*app.success, *app.info, *app.warning])
     assert CRIME_VINTAGE in banner and "Tourism" not in banner
+
+
+
+# ---- multipage: Home, navigation, docs pages -------------------------------------
+
+def test_home_is_default_and_explains_the_tool():
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    assert not at.exception
+    assert at.title[0].value == "Restaurant Location Intelligence"
+    headers = [h.value for h in at.subheader]
+    for section in ("Try an example", "How to use it", "How to read the results"):
+        assert section in headers
+    assert int(at.metric[1].value.replace(".", "")) > 300  # zones scored, computed from data
+
+
+def test_start_button_opens_analyse_with_home_link():
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    next(b for b in at.button if b.label == "Start analysing").click().run()
+    assert not at.exception
+    assert at.sidebar.selectbox and "Barcelona" in _header(at)
+
+
+def test_home_example_prefills_and_opens_analyse():
+    at = AppTest.from_file(APP, default_timeout=90).run()
+    next(b for b in at.button if "Madrid · Burger" in b.label).click().run()
+    assert not at.exception
+    assert "Madrid · Burger · Medium budget" in _header(at)
+
+
+@pytest.mark.parametrize("page,needle", [
+    ("views/methodology.py", "Methodology"),
+    ("views/data_legal.py", "Data sources, licences and attribution"),
+])
+def test_docs_pages_render_with_github_links(page, needle):
+    # Run the page script directly (st.navigation pages are plain scripts).
+    at = AppTest.from_file(str(Path(APP).parent / page), default_timeout=90).run()
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert needle in text
+    assert "](LICENSE)" not in text  # relative links rewritten to GitHub URLs

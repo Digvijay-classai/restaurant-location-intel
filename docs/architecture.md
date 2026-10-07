@@ -21,8 +21,9 @@ scripts/build_demo_data ──▶ synthetic frame
                              → financial_model.compute  economics + sensitivity + risk flags
                              → financial_model.rank_zones   one economics-first rank
                                ▼
-        app.py: provenance bar → anchor card → Shortlist | Map | Rankings | Method | Data
-                  (viz/maps.py, viz/theme.py, formatting.py, export.py)
+        app.py (router: Home | Analyse | Methodology | Data & legal, inputs persist across pages)
+          views/analyze.py: provenance bar → anchor card → Shortlist | Map | Rankings | Data
+                  (viz/maps.py, viz/theme.py, viz/ui.py, formatting.py, export.py)
 ```
 
 ## Key design decisions
@@ -87,7 +88,11 @@ requires live POIs and INE tract demographics.
 | `src/export.py` | Strict-JSON GeoJSON export |
 | `src/formatting.py` | es-ES number/€ formatting |
 | `src/viz/maps.py`, `src/viz/theme.py` | Folium map, colour tokens, CVD-safe ramp |
-| `app.py` | Streamlit UI |
+| `app.py` | Page config, shared CSS, navigation, input persistence |
+| `views/home.py` | What the tool is, how to use it, how to read results, example scenarios |
+| `views/analyze.py` | The scoring tool (sidebar inputs, provenance, shortlist, map, rankings, exports) |
+| `views/methodology.py`, `views/data_legal.py` | Render `docs/methodology.md`, `DATA_LICENSES.md`, `DISCLAIMER.md` |
+| `src/viz/ui.py` | Shared CSS, footer, repo-markdown rendering (relative links → GitHub) |
 | `scripts/pull_live_data.py` | LIVE snapshot refresh |
 | `scripts/build_demo_data.py` | SYNTHETIC snapshots (deterministic) |
 | `scripts/fetch_ine_tracts.py` | INE census-tract demographics → `data/ine/<city>.csv` |

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.4.0 (2026-10-07)
+
+### Added
+- **Home page** that explains what the tool answers, shows live coverage
+  numbers computed from the shipped data, gives a 4-step "how to use" guide
+  and "how to read the results", and links to three one-click example
+  scenarios (one of them shows the tool saying "no").
+- **Multi-page navigation** (Home · Analyse · Methodology · Data & legal),
+  with a Home link at the top of the sidebar. Inputs persist across pages.
+- Methodology and Data & legal pages render the repo docs, a single source
+  of truth, with relative links rewritten to GitHub.
+- CI tests the latest allowed dependency versions on Python 3.12, 3.13 and
+  3.14 (what Streamlit Community Cloud installs), plus a weekly run.
+
+### Changed
+- The provenance bar shows the current crime source; the unused tourism
+  figures are no longer displayed.
+- New screenshots (Home, Analyse, map crop).
+
 ## 0.3.0 (2026-10-06)
 
 Fixes from the /autoplan audit. Several of these changed scores, so
