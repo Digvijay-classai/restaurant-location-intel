@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
-APP = "app.py"
+# Absolute path: newer Streamlit resolves relative paths against the calling file.
+APP = str(Path(__file__).resolve().parents[1] / "app.py")
 
 
 @pytest.fixture
