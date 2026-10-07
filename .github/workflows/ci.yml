@@ -5,9 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"   # weekly: catch breakage from new upstream releases
 
 jobs:
-  test:
+  test-locked:
+    name: tests (locked versions, Python 3.11)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -24,5 +27,27 @@ jobs:
       # them, so a LIVE snapshot in a PR is what gets tested.
       - name: Validate committed snapshots
         run: python scripts/validate_snapshots.py
+      - name: Run tests
+        run: python -m pytest -q
+
+  test-latest:
+    # Streamlit Community Cloud installs requirements.txt (ranges), i.e. the
+    # newest allowed versions. Test exactly that on current Pythons.
+    name: tests (latest allowed versions, Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install dependencies (latest allowed)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip freeze | grep -iE "^(streamlit|streamlit-folium|folium|pandas|numpy|h3|shapely)=="
       - name: Run tests
         run: python -m pytest -q
