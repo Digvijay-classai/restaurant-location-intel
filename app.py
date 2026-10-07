@@ -171,7 +171,7 @@ SOURCE_LABELS = {
     "ine_csv": "INE census tracts", "city_median": "city medians (estimated)",
     "google_places": "Google Places", "osm": "OpenStreetMap", "mixed": "mixed",
 }
-rent_label = {"seeded_cw_cbre_2024": "seeded from C&W/CBRE 2024 (+ model)",
+rent_label = {"seeded_cw_cbre_2024": "author estimates calibrated to C&W/CBRE 2024 ranges (+ model)",
               "none": "modelled proxy"}.get(meta.get("rent", "none"),
                                             meta.get("rent", "").replace("_", " ") + " (+ model)")
 prov = (
@@ -371,8 +371,8 @@ st.divider()
 st.caption(
     "**Data:** © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL) · "
     "Elaboración propia con datos extraídos del sitio web del [INE](https://www.ine.es) (CC BY 4.0) · "
-    "Crime: Ministerio del Interior, Balance de Criminalidad · "
-    "Rent benchmarks: figures cited from Cushman & Wakefield and CBRE Spain 2024 public reports · "
+    "Crime: Ministerio del Interior, Balance de Criminalidad 2025 (municipal; neighbourhood variation estimated) · "
+    "Rent: author estimates calibrated to Cushman & Wakefield / CBRE Spain 2024 public ranges · "
     "Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors"
     + (" · Competitor counts: Google Places (Powered by Google)" if uses_places else "")
     + ". Sources and licences: [DATA_LICENSES.md](https://github.com/Digvijay-classai/restaurant-location-intel/blob/main/DATA_LICENSES.md)."

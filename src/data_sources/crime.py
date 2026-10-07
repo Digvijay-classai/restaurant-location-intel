@@ -7,14 +7,18 @@ district-level incident counts via their open-data portals; Valladolid
 Policia Municipal publishes zone-level figures as PDF reports.
 
 Note on measurement: dividing crimes by *registered residents* inflates
-tourist-zone rates (daily population is 2-4x resident count in
+tourist-city rates (daily population is 2-4x resident count in
 Ciutat Vella, Centro Madrid, etc.). We embrace that — an operator cares
 about absolute incident risk per block, not per-capita-normalised-only.
 
 Safety score: `safety = exp(-crime / 120)`.
 0 crime -> 1.0, 60 -> 0.61, 120 -> 0.37, 240 -> 0.14.
 
-The figures themselves live in `src/cities.py` (vintage: CRIME_VINTAGE).
+Municipal rate (official): Ministerio del Interior, Balance de
+Criminalidad Q4 2025, "Criminalidad convencional" Jan-Dec 2025, divided by
+INE ADRH 2023 municipal population. Neighbourhood variation is an AUTHOR
+ESTIMATE (relative index in `src/cities.py`), because the Ministry publishes
+municipal totals only.
 Sources:
 - https://estadisticasdecriminalidad.ses.mir.es
 - https://opendata-ajuntament.barcelona.cat (incidents por districte)
@@ -34,8 +38,11 @@ def city_crime_rate(city: str) -> float:
 
 
 def neighbourhood_crime_rate(city: str, neighbourhood: str) -> float:
-    """Return per-1k crime rate for a neighbourhood, fallback to city."""
+    """Official municipal rate x the neighbourhood's estimated relative index.
+
+    Neighbourhoods without an index (and "Outskirts") get the municipal rate.
+    """
     c = CITIES.get(city.lower())
-    if c and neighbourhood in c.hood_crime_per_1000:
-        return c.hood_crime_per_1000[neighbourhood]
-    return city_crime_rate(city)
+    if c is None:
+        return DEFAULT_CRIME_PER_1000
+    return c.crime_per_1000 * c.hood_crime_index.get(neighbourhood, 1.0)

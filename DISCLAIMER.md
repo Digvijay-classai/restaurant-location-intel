@@ -18,7 +18,8 @@ Always verify on site and with qualified professionals.
 The model's assumptions and limitations are documented in
 [docs/methodology.md](docs/methodology.md#limitations). In particular:
 - foot traffic is proxied from static points of interest;
-- rent is seeded from public market reports and modelled;
+- rent figures are author estimates calibrated to public market-report ranges;
+- neighbourhood crime variation is an author estimate (municipal rates are official);
 - the demand model has not been backtested against real openings and closures;
 - licence/heritage flags are approximate.
 

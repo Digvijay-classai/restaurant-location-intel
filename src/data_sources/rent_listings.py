@@ -6,7 +6,8 @@ The pipeline reads `data/rent/<city>.csv`:
 
 and Bayesian-shrinks each neighbourhood's figure toward the modelled rent
 proxy by `n_listings` (see engine.estimate_rent_eur_per_sqm). The shipped
-CSVs are seeded from Cushman & Wakefield / CBRE Spain 2024 public reports.
+CSVs are author estimates calibrated to Cushman & Wakefield / CBRE Spain 2024
+public report ranges (not figures published by those firms).
 
 To use real listings you are licensed to use (a broker export, an
 Idealista Data / Habitaclia data purchase, your own survey), put them in

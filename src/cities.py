@@ -10,22 +10,31 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-CRIME_VINTAGE = "2024-Q4 (Ministerio del Interior, rolling 12-month)"
+CRIME_VINTAGE = ("2025 municipal rate (Ministerio del Interior, Balance de Criminalidad Q4 2025); "
+                 "neighbourhood variation is an author estimate")
 TOURISM_VINTAGE = "2024 average (INE Encuesta de Ocupacion Hotelera)"
 INCOME_VINTAGE = "2022 (INE Atlas de Distribucion de Renta de los Hogares)"
 DENSITY_VINTAGE = "2024 municipal average (INE Padron / municipal area)"
 
 
 @dataclass(frozen=True)
-class City:
+class City:  # noqa: D101 (fields documented inline)
     key: str
     name: str
     center: tuple[float, float]          # (lat, lon)
     radius_deg: float                    # bbox half-size when no GeoJSON boundary exists
     # (name, lat, lon, radius_km): nearest-centroid neighbourhood lookup.
     hoods: tuple[tuple[str, float, float, float], ...]
-    crime_per_1000: float                # municipality rate
-    hood_crime_per_1000: dict[str, float]
+    # Official: Ministerio del Interior, Balance de Criminalidad Q4 2025,
+    # municipal "Criminalidad convencional", Jan-Dec 2025.
+    crime_conventional_2025: int
+    # Denominator: municipal population, INE ADRH 2023 (same source as the tracts).
+    crime_population: int
+    # AUTHOR ESTIMATE: relative crime level per neighbourhood vs the city
+    # (1.0 = city rate). The Ministry publishes municipal totals only; these
+    # indices are approximate values inherited from the original model, not from
+    # an official source, and are labelled as estimates wherever shown.
+    hood_crime_index: dict[str, float]
     hotel_beds_per_1000: float
     overnight_stays_per_capita: float
     income_household: float              # city median, EUR / household / year
@@ -49,6 +58,11 @@ class City:
     synthetic_radius_deg: float = 0.040
     synthetic_income_sd: float = 10_000.0
     synthetic_cuisine_share: dict[str, float] = field(default_factory=dict)
+
+    @property
+    def crime_per_1000(self) -> float:
+        """Official conventional crime per 1,000 residents (municipal)."""
+        return 1000.0 * self.crime_conventional_2025 / self.crime_population
 
 
 CITIES: dict[str, City] = {
@@ -74,13 +88,9 @@ CITIES: dict[str, City] = {
             ("Santa Coloma",        41.4530, 2.2110, 1.6),
             ("Esplugues",           41.3760, 2.0870, 1.6),
         ),
-        crime_per_1000=73.4,
-        hood_crime_per_1000={
-            # Ciutat Vella tourist-theft inflator (daily pop. ~3x resident).
-            "Ciutat Vella": 238.0, "Eixample": 87.0, "Sants-Montjuic": 62.0,
-            "Les Corts": 41.0, "Sarria-Sant Gervasi": 36.0, "Gracia": 58.0,
-            "Horta-Guinardo": 44.0, "Nou Barris": 56.0, "Sant Andreu": 47.0,
-            "Sant Marti": 61.0,
+        crime_conventional_2025=152_469, crime_population=1_601_446,
+        hood_crime_index={
+            "Ciutat Vella": 3.24, "Eixample": 1.19, "Sants-Montjuic": 0.84, "Les Corts": 0.56, "Sarria-Sant Gervasi": 0.49, "Gracia": 0.79, "Horta-Guinardo": 0.6, "Nou Barris": 0.76, "Sant Andreu": 0.64, "Sant Marti": 0.83,
         },
         hotel_beds_per_1000=48.0,
         overnight_stays_per_capita=11.5,
@@ -124,16 +134,9 @@ CITIES: dict[str, City] = {
             ("San Blas-Canillejas", 40.4310, -3.6160, 2.4),
             ("Barajas",             40.4760, -3.5840, 2.4),
         ),
-        crime_per_1000=61.2,
-        hood_crime_per_1000={
-            "Centro": 196.0, "Arganzuela": 62.0, "Retiro": 47.0,
-            "Salamanca": 68.0, "Chamartin": 43.0, "Tetuan": 69.0,
-            "Chamberi": 54.0, "Fuencarral-El Pardo": 36.0,
-            "Moncloa-Aravaca": 46.0, "Latina": 57.0, "Carabanchel": 64.0,
-            "Usera": 71.0, "Puente de Vallecas": 76.0, "Moratalaz": 40.0,
-            "Ciudad Lineal": 52.0, "Hortaleza": 38.0, "Villaverde": 73.0,
-            "Villa de Vallecas": 48.0, "Vicalvaro": 44.0,
-            "San Blas-Canillejas": 53.0, "Barajas": 39.0,
+        crime_conventional_2025=195_651, crime_population=3_232_462,
+        hood_crime_index={
+            "Centro": 3.2, "Arganzuela": 1.01, "Retiro": 0.77, "Salamanca": 1.11, "Chamartin": 0.7, "Tetuan": 1.13, "Chamberi": 0.88, "Fuencarral-El Pardo": 0.59, "Moncloa-Aravaca": 0.75, "Latina": 0.93, "Carabanchel": 1.05, "Usera": 1.16, "Puente de Vallecas": 1.24, "Moratalaz": 0.65, "Ciudad Lineal": 0.85, "Hortaleza": 0.62, "Villaverde": 1.19, "Villa de Vallecas": 0.78, "Vicalvaro": 0.72, "San Blas-Canillejas": 0.87, "Barajas": 0.64,
         },
         hotel_beds_per_1000=32.0,
         overnight_stays_per_capita=7.1,
@@ -176,15 +179,9 @@ CITIES: dict[str, City] = {
             ("Zona Universidad",      41.6650, -4.7050, 1.0),
             ("Pilarica",              41.6450, -4.6890, 1.0),
         ),
-        crime_per_1000=42.1,
-        hood_crime_per_1000={
-            "Centro": 62.0, "San Pablo": 48.0, "Delicias": 44.0,
-            "La Rondilla": 41.0, "Huerta del Rey": 35.0, "Parquesol": 29.0,
-            "Pajarillos": 54.0, "La Victoria": 33.0, "Barrio Espana": 46.0,
-            "Belen": 36.0, "Las Flores": 38.0, "Hospital": 42.0,
-            "San Isidro": 40.0, "Pajarillos-Industrial": 51.0,
-            "Villa del Prado": 31.0, "Covaresa": 28.0,
-            "Zona Universidad": 37.0, "Pilarica": 43.0,
+        crime_conventional_2025=8_423, crime_population=299_316,
+        hood_crime_index={
+            "Centro": 1.47, "San Pablo": 1.14, "Delicias": 1.05, "La Rondilla": 0.97, "Huerta del Rey": 0.83, "Parquesol": 0.69, "Pajarillos": 1.28, "La Victoria": 0.78, "Barrio Espana": 1.09, "Belen": 0.86, "Las Flores": 0.9, "Hospital": 1.0, "San Isidro": 0.95, "Pajarillos-Industrial": 1.21, "Villa del Prado": 0.74, "Covaresa": 0.67, "Zona Universidad": 0.88, "Pilarica": 1.02,
         },
         hotel_beds_per_1000=11.5,
         overnight_stays_per_capita=2.4,

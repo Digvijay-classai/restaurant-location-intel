@@ -111,7 +111,7 @@ competitor counts.
 ### Commercial rents
 
 `data/rent/<city>.csv` holds rent per neighbourhood. The shipped figures
-are cited from public market reports. To use listings you are licensed to
+are author estimates calibrated to public C&W / CBRE ranges. To use listings you are licensed to
 use (a broker export, a purchased data feed, your own survey):
 
 ```bash
@@ -199,8 +199,8 @@ docs/                        methodology, architecture, data dictionary, screens
   The snapshots (`data/sample_output/`) are released under the ODbL.
   - © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
   - Elaboración propia con datos extraídos del sitio web del [INE](https://www.ine.es) (CC BY 4.0)
-  - Crime: Ministerio del Interior, Balance de Criminalidad
-  - Rent benchmarks cited from Cushman & Wakefield and CBRE Spain 2024 public reports
+  - Crime: Ministerio del Interior, Balance de Criminalidad 2025 (municipal rate; neighbourhood variation is an author estimate)
+  - Rent: author estimates calibrated to Cushman & Wakefield / CBRE Spain 2024 public ranges (not their published figures)
   - Map tiles © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors ([tile usage policy](https://operations.osmfoundation.org/policies/tiles/): light use)
 - **Disclaimer:** an independent portfolio project, not affiliated with any data
   provider. Figures are estimates, not advice, and come with no warranty. See

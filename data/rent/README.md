@@ -16,9 +16,10 @@ is shown in the app's provenance bar.
 ## Shipped values
 
 The three files (`barcelona.csv`, `madrid.csv`, `valladolid.csv`) are
-**seeded**: each neighbourhood figure is cited from Cushman & Wakefield and
-CBRE Spain 2024 public retail reports, then rounded and transcribed by the
-author. `n_listings` is the weight given to that figure in the blend; it is
+**author estimates**: each neighbourhood figure was set by the author to sit
+within the high-street rent ranges reported in Cushman & Wakefield and CBRE
+Spain 2024 public retail reports. They are not figures published by those
+firms. `n_listings` is the weight given to that figure in the blend; it is
 not a count of real listings.
 
 The pipeline blends each value with a modelled proxy using Bayesian

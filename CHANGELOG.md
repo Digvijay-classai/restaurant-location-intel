@@ -81,6 +81,14 @@ rankings differ from 0.2.
   attribution; snapshots under ODbL), plus an in-app disclaimer and
   privacy note. Streamlit usage statistics are disabled.
 
+- **Crime uses official 2025 municipal counts** (Ministerio del Interior,
+  Balance de Criminalidad Q4 2025) divided by INE population: Barcelona
+  95.2, Madrid 60.5, Valladolid 28.1 per 1,000. The previous unsourced rates
+  were 73.4, 61.2 and 42.1. Neighbourhood variation is kept as a relative
+  index, labelled as an author estimate.
+- **Rent attribution corrected**: the neighbourhood figures are author
+  estimates calibrated to C&W / CBRE ranges, not figures cited from them.
+
 ### Removed
 - `geopandas` and `plotly` (unused).
 - CI no longer regenerates snapshots. It validates the committed ones.
